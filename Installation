@@ -124,7 +124,7 @@ Delete -> Security Hotspots Reviewed
 
 Add Condition -> On New Code -> Qlty Gate fails when -> Block -> In Drop down Type - "Block Severity Issues" -> Opr - is greater than -> value - 0
 
-Conditions 
+These conditions should be there 
 
 Issues - is greater than - 0
 Coverage - is less than - 70.0%
