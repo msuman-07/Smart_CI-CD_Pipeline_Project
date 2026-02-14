@@ -166,7 +166,7 @@ Maven Integration Plugin
 
 Settings -> Tools -> + Add Maven Installations -> Name - Maven -> Install Automatically -> Apply and Save it
 
-Settings -> Credentials -> Global -> Click Secret Text ->  Scope - Global (Jenkins, nodes.....) -> Secret - Add the sonarqube token we copied on notepad earlier -> ID - SonarQube -> Description - SonarQube -> Create
+Settings -> Credentials -> Global -> Add Credentials -> Click Secret Text ->  Scope - Global (Jenkins, nodes.....) -> Secret - Add the sonarqube token we copied on notepad earlier -> ID - SonarQube -> Description - SonarQube -> Create
 
 Settings -> System -> SonarQube Installations -> Name - SonarQube (Add secret Text Id as a name) -> Server URL - Add Sonar Server EC2 public id with port number 9000 -> Server auth token - In Dropdown click SonarQube
 
