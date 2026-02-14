@@ -28,10 +28,12 @@ psql
 ALTER USER ddsonar WITH ENCRYPTED password 'user'; 
 CREATE DATABASE ddsonarqube OWNER ddsonar; 
 GRANT ALL PRIVILEGES ON DATABASE ddsonarqube to ddsonar; 
+
 \l
 \du
 \q
 exit 
+
 sudo apt install zip -y 
 sudo wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-26.2.0.119303.zip 
 sudo unzip sonarqube-26.2.0.119303.zip 
