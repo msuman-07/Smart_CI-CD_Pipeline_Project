@@ -222,7 +222,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('EcommerceApp') {
-                    withSonarQubeEnv('sonarqube') {
+                    withSonarQubeEnv('SonarQube') {
                         sh 'mvn sonar:sonar'
                     }
                 }
@@ -240,7 +240,7 @@ pipeline {
         stage('Deploy to Tomcat') {
             steps {
                 dir('EcommerceApp') {
-                    sh 'sudo cp target/EcommerceApp.war /home/ubuntu/tomcat9/webapps/'
+                    sh 'sudo cp target/EcommerceApp.war ${TOMCAT_PATH}'
                 }
             }
         }
@@ -300,52 +300,247 @@ Scope - Global(Jenkins,nod...) -> Username - msuman2003711@gmail.com -> pw - Add
 
 Click on checkbox - Use SSL -> Below -> Default user e-mail suffix - @gmail.com -> Default Content Type - HTML -> Apply and save it
 
+Check both E-Mail Notification & Extended E-Mail Notification is everything filled
+
 ### Apache Tomcat Installation & Setup ###
 
-sudo su
+Go to Ubuntu user home
+(Don’t stay in /root)
+
+cd /home/ubuntu
+
+Check:
+pwd
+
+Output must be:
+/home/ubuntu
 
 Downloads Tomcat server - 
-sudo wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.115/bin/apache-tomcat-9.0.115.zip
+wget https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.89/bin/apache-tomcat-9.0.89.tar.gz
 (Get the tomcat installation zip from that website - https://tomcat.apache.org/download-90.cgi)
 
 Extracts compressed file - 
-unzip apache-tomcat-9.0.115.zip
+tar -xvzf apache-tomcat-9.0.89.tar.gz
 
-Moves into Tomcat installation folder -
-cd apache-tomcat-9.0.115
+You will get -
+apache-tomcat-9.0.89
 
-Edit server configuration file - 
-cd conf
+Rename Folder -
+mv apache-tomcat-9.0.89 tomcat9
+
+Now your folder -
+/home/ubuntu/tomcat9
+
+Give Permission - 
+sudo chown -R ubuntu:ubuntu /home/ubuntu/tomcat9
+
+Go to Config Folder - 
+cd tomcat9/conf
+
+Change Tomcat Port -
+Open config -
+
 vi server.xml
 
-Change:
+Find -
+Connector port="8080"
 
-8080 → 9090
-Save → ESC :wq
+Change 8080 -> 9090
 
-Moves into binary folder - 
-cd .. 
-cd bin
+Save and Exit Vim -
 
-Makes shell scripts executable - 
+Click "i" for insert
+Esc
+Type :wq
+Enter
+
+Go to bin folder - 
+cd ../bin
+
+Give Execute Permission - 
 chmod +x *.sh
 
-Starts Tomcat server -
+Start Tomcat - 
 ./startup.sh
 
-Deploy applications - 
-cd ..
-cd webapps
+Jenkins Permission Setup -
 
-Access Tomcat
+sudo visudo
+
+Go to bottom and add this command -
+jenkins ALL=(ALL) NOPASSWD: ALL
+
+Then click "Ctrl + x" , "y" , "Enter"
+
+" Setup Complete "
+
+
+Access Tomcat (Use Jenkins server ip)
 http://"server-ip":9090
 
-Go to Jenkins -> Check the pipeline code once in Jenkins -> Click BUILD NOW -> In Stages everything must be tick and all should run
+Go to Jenkins -> Correct the pipeline code with "your-mail-id" and "SonarQube" name once in Jenkins -> Click BUILD NOW -> Click Pipeline Overview -> Everything must be tick like this:
 
-In SonarQube the Ecommerce Maven WebApp must run 
+Start -> Tool Install -> Clone Repository -> Check Project Structure -> Compile -> Test -> SonarQube Analysis -> Package -> Deploy to Tomcat -> Download Sonar... -> Post Actions -> End
 
-Check your Mail for the confirmation process
+Correct and add these in the above pipeline code if needed - 
 
 
+stage('Download Sonar Report') {
+    steps {
+        sh """
+            curl -u ${SONAR_TOKEN}: \
+            http://<SONARQUBE_PUBLIC_IP>:9000/api/issues/search?projectKeys=${SONAR_PROJECT_KEY} \
+            -o sonar-report.json
+        """
+    }
+}
 
+stage('Push Report to GitHub') {
+    steps {
+        sh """
+            git config user.email "jenkins@ci.com"
+            git config user.name "Jenkins"
+
+            git add sonar-report.json
+            git commit -m "SonarQube Report - Build ${BUILD_NUMBER}" || echo "No changes to commit"
+
+            git push origin master
+        """
+    }
+}
+
+
+In SonarQube Webpage the "EcommerceApp Maven WebApp" must RUN
+
+Check your Mail for the confirmation process like "✔️ SUCCESS: EcommerceApp - Build #1" or "❌ FAILED: EcommerceApp - Build #1"
+
+Click BUILD NOW after every CONFIGURATION
+
+#############################################       MY PIPELINE SCRIPT      ################################################
+
+
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven'
+    }
+
+    environment {
+        SONAR_TOKEN = "squ_4503a72ed1ba69cc36ebc87b06e05ddd4fac4243"
+        SONAR_PROJECT_KEY = "EcommerceApp"
+        SONAR_HOST_URL = "http://13.202.45.152:9000"
+        TOMCAT_PATH = "/home/ubuntu/tomcat9/webapps/"
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/Msocial123/EcommerceApp.git'
+            }
+        }
+
+        stage('Check Project Structure') {
+            steps {
+                sh 'ls -la'
+            }
+        }
+
+        stage('Compile') {
+            steps {
+                dir('EcommerceApp') {
+                    sh 'mvn clean compile'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('EcommerceApp') {
+                    sh 'mvn test'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('EcommerceApp') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.login=${SONAR_TOKEN}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                dir('EcommerceApp') {
+                    sh 'mvn package'
+                }
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                dir('EcommerceApp') {
+                    sh "sudo cp target/EcommerceApp.war ${TOMCAT_PATH}"
+                }
+            }
+        }
+
+        stage('Download Sonar Report') {
+            steps {
+                sh """
+                curl -u ${SONAR_TOKEN}: \
+                ${SONAR_HOST_URL}/api/issues/search?projectKeys=${SONAR_PROJECT_KEY} \
+                -o sonar-report.json
+                """
+            }
+        }
+    }
+
+    post {
+
+        success {
+            emailext(
+                to: 'msuman2003711@gmail.com',
+                subject: "✔️ SUCCESS: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                body: """
+<h2 style="color:green;">✔️ Build Successful</h2>
+
+<b>Job:</b> ${env.JOB_NAME}<br>
+<b>Build Number:</b> ${env.BUILD_NUMBER}<br>
+<b>Build URL:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a><br><br>
+
+Application built and deployed successfully.
+"""
+            )
+        }
+
+        failure {
+            emailext(
+                to: 'msuman2003711@gmail.com',
+                subject: "❌ FAILED: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
+                body: """
+<h2 style="color:red;">❌ Build Failed</h2>
+
+<b>Job:</b> ${env.JOB_NAME}<br>
+<b>Build Number:</b> ${env.BUILD_NUMBER}<br>
+<b>Build URL:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a><br><br>
+
+Check Jenkins console for errors.
+"""
+            )
+        }
+    }
+}
+
+#############################################       MY PIPELINE SCRIPT      ################################################
 
