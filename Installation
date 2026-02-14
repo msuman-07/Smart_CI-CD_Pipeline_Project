@@ -135,6 +135,8 @@ Homepage -> Click Administration -> Security -> Users -> Click three dotes below
 
 Now jenkins-ec2(server)
 
+sudo su
+
 sudo apt update -y 
 
 sudo apt install -y fontconfig openjdk-21-jre 
